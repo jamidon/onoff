@@ -51,6 +51,7 @@ function pollerEventHandler(err, fd, events) {
  * debounceTimeout: number  // Can be used to software debounce a button or
  *                          // switch using a timeout. Specified in
  *                          // milliseconds. The default value is 0.
+ * active_low: 0 or 1 // can be used to indicate whether an input is active when it is low or high
  */
 function Gpio(gpio, direction, edge, options) {
   var valuePath,
@@ -72,6 +73,7 @@ function Gpio(gpio, direction, edge, options) {
   this.gpioPath = GPIO_ROOT_PATH + 'gpio' + this.gpio + '/';
   this.opts = {};
   this.opts.debounceTimeout = options.debounceTimeout || 0;
+  this.opts.active_low = '' + (options.active_low || 0);
   this.readBuffer = new Buffer(16);
   this.listeners = [];
 
@@ -102,6 +104,10 @@ function Gpio(gpio, direction, edge, options) {
     if (edge) {
       fs.writeFileSync(this.gpioPath + 'edge', edge);
     }
+
+    if (this.opts.active_low !== '0') {
+      fs.writeFileSync(this.gpioPath + 'active_low', this.opts.active_low);
+    }
   } else {
     // The pin has already been exported, perhaps by onoff itself, perhaps
     // by quick2wire gpio-admin on the Pi, perhaps by the WiringPi gpio
@@ -122,6 +128,12 @@ function Gpio(gpio, direction, edge, options) {
     try {
       if (edge) {
         fs.writeFileSync(this.gpioPath + 'edge', edge);
+      }
+    } catch (ignore) {
+    }
+    try {
+      if (this.opts.active_low !== '0') {
+        fs.writeFileSync(this.gpioPath + 'active_low', this.opts.active_low);
       }
     } catch (ignore) {
     }
@@ -301,4 +313,3 @@ Gpio.prototype.unexport = function () {
   fs.closeSync(this.valueFd);
   fs.writeFileSync(GPIO_ROOT_PATH + 'unexport', this.gpio);
 };
-
